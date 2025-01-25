@@ -9,6 +9,8 @@ import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = func.FunctionApp()
 
@@ -19,10 +21,10 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         logging.info('The timer is past due!')
         all_trades_url = os.getenv('all_trades_url', '')
         trader_name = os.getenv('trader_name', '')
-        #sender_email = os.getenv('sender_email', '')
+        sender_email = os.getenv('sender_email', '')
         #app_password = os.getenv('app_password', '')
-        #recipient_email = os.getenv('recipient_email', '')
-        #pdf_file_url = os.getenv('pdf_file_url', '')
+        recipient_email = os.getenv('recipient_email', '')
+        pdf_file_url = os.getenv('pdf_file_url', '')
 
         try:
             os.makedirs('./trades/2025FD')
@@ -37,7 +39,7 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         if new_trades_today:
             print('There are new trades today')
             # Send an email notification
-            # send_email_notification(new_trades, trader_name, sender_email, app_password, recipient_email, pdf_file_url)
+            send_email_notification(new_trades, trader_name, sender_email, recipient_email, pdf_file_url)
 
     remove_old_files(new_trades)
     logging.info('Trader trigger function executed.')
@@ -70,21 +72,7 @@ def check_for_new_trades(all_trades_url, trader_name):
 
     return new_trades
 
-def log_trade(trades, pdf_file_url, trader_name):
-    if not trades:
-        return
-
-    body = f"New  {trader_name} trades have been detected:\n\n"
-
-    for trade in trades:
-        body += f"Date: {trade[0].strftime('%Y-%m-%d')}\n"
-        body += f"Document ID: {trade[1]}\n"
-        body += f"PDF URL: {pdf_file_url}{trade[1]}.pdf\n\n"
-    
-    logging.info(body)
-
-
-def send_email_notification(trades, trader_name, sender_email, app_password, recipient_email, pdf_file_url):
+def send_email_notification(trades, trader_name, sender_email, recipient_email, pdf_file_url):
     if not trades:
         return
 
@@ -96,22 +84,23 @@ def send_email_notification(trades, trader_name, sender_email, app_password, rec
         body += f"Document ID: {trade[1]}\n"
         body += f"PDF URL: {pdf_file_url}{trade[1]}.pdf\n\n"
 
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    msg = Mail(
+        from_email=sender_email,
+        to_emails=recipient_email,
+        subject=subject,
+        plain_text_content=body
+    )
+
+    akey = os.getenv('key', '')
 
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender_email, app_password)
-        text = msg.as_string()
-        server.sendmail(sender_email, recipient_email, text)
-        server.quit()
+        sg = SendGridAPIClient(api_key=akey)
+        response = sg.client.mail.send.post(request_body=msg.get())
+        logging.info(f"Email notification sent for {len(trades)} trades {response.status_code}")
         print(f"Email notification sent for {len(trades)} trades")
     except Exception as e:
         print(f"Failed to send email notification: {e}")
+        logging.error(f"Failed to send email notification: {e}")
 
 def remove_old_files(new_trades):
     files_to_remove = [
