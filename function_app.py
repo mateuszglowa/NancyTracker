@@ -25,10 +25,17 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         recipient_email = os.getenv('recipient_email', '')
         pdf_file_url = os.getenv('pdf_file_url', '')
 
+        logging.info("This is an INFO message.")  # Should appear in logs
+        logging.warning("This is a WARNING message.")  # Should appear in logs
+        logging.error("This is an ERROR message.")  # Should appear in logs
+        logging.debug("This is a DEBUG message.")  # Will NOT appear in logs by default
+        
         try:
             os.makedirs('./trades/2025FD')
         except FileExistsError:
             pass
+        
+        logging.info('Checking for new trades before check_for_new_trades function')
 
         new_trades = check_for_new_trades(all_trades_url, trader_name)
 
