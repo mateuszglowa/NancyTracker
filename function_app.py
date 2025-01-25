@@ -14,7 +14,7 @@ from sendgrid.helpers.mail import Mail
 
 app = func.FunctionApp()
 
-@app.timer_trigger(schedule="0 0 */5 * * *", arg_name="myTimer", run_on_startup=False,
+@app.timer_trigger(schedule="0 0 * * * *", arg_name="myTimer", run_on_startup=False,
               use_monitor=False) 
 def func_timer_trigger(myTimer: func.TimerRequest) -> None:
     if myTimer.past_due:
@@ -33,12 +33,16 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         new_trades = []
         new_trades = check_for_new_trades(all_trades_url, trader_name)
 
+        logging.info('New trades: %s', new_trades)
+        
         # check if new_trades conains any trades for today
         new_trades_today = [trade for trade in new_trades if trade[0].date() == datetime.datetime.now().date()]
         if new_trades_today:
-            print('There are new trades today')
+            logging.info('There are new trades today')
             # Send an email notification
             send_email_notification(new_trades, trader_name, sender_email, recipient_email, pdf_file_url)
+        else:
+            logging.info('There are no new trades today')
 
     remove_old_files(new_trades)
     logging.info('Trader trigger function executed.')
@@ -102,6 +106,7 @@ def send_email_notification(trades, trader_name, sender_email, recipient_email, 
         logging.error(f"Failed to send email notification: {e}")
 
 def remove_old_files(new_trades):
+    logging.info('Removing old files')
     files_to_remove = [
         './trades/2025FD.zip',
         './trades/2025FD/2025FD.txt',
