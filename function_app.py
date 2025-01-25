@@ -38,10 +38,6 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
             new_trades_out = check_for_new_trades(all_trades_url, trader_name)
         except Exception as e:
             logger.error(f"Failed to check for new trades: {e}")
-
-        logger.info('New trades: %s', new_trades)
-
-        # check if new_trades conains any trades for today
         
         # if new_trades is not em
         if new_trades_out:
@@ -51,18 +47,17 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
                 logger.info('There are new trades today')
                 # Send an email notification
                 send_email_notification(
-                    new_trades, trader_name, sender_email, recipient_email, pdf_file_url)
+                    new_trades_out, trader_name, sender_email, recipient_email, pdf_file_url)
         else:
             logger.info('There are no new trades today')
 
-    remove_old_files(new_trades)
+    remove_old_files(new_trades_out)
     logger.info('Trader trigger function executed.')
 
 
 def check_for_new_trades(all_trades_url, trader_name):
     # Check if ./trades/2025FD.zip file exists
     # If not, download zip file
-    logger.info('Checking for new trades')
     if not os.path.isfile('./trades/2025FD.zip'):
         r = requests.get(all_trades_url)
         with open('./trades/2025FD.zip', 'wb') as f:
@@ -123,7 +118,6 @@ def send_email_notification(trades, trader_name, sender_email, recipient_email, 
 
 
 def remove_old_files(new_trades_to_remove):
-    logger.info('Removing old files')
     files_to_remove = [
         './trades/2025FD.zip',
         './trades/2025FD/2025FD.txt',
