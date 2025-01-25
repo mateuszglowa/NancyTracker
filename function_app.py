@@ -39,7 +39,7 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         # Check if ./trades/2025FD.zip file exists
         # If not, download zip file
         if not os.path.isfile('./trades/2025FD.zip'):
-            r = requests.get(all_trades_url)
+            r = requests.get(all_trades_url, timeout=10)
             with open('./trades/2025FD.zip', 'wb') as f:
                 f.write(r.content)
 
@@ -56,14 +56,10 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
                     dt = datetime.datetime.strptime(line[-2], '%m/%d/%Y')
                     doc_id = line[8]
                     trades.append((dt, doc_id))
-
-        # Sort trades by date, most recent first
-        # if new_trades is not empty
-        if trades:
-            trades.sort(reverse=True)
         
         # if new_trades is not em
         if trades:
+            trades.sort(reverse=True)
             new_trades_today = [trade for trade in trades if trade[0].date() == datetime.datetime.now().date()]
             if new_trades_today:
                 logger.info('There are new trades today')
