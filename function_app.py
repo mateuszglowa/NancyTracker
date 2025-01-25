@@ -50,6 +50,7 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
 def check_for_new_trades(all_trades_url, trader_name):
     # Check if ./trades/2025FD.zip file exists
     # If not, download zip file
+    logging.info('Checking for new trades')
     if not os.path.isfile('./trades/2025FD.zip'):
         r = requests.get(all_trades_url)
         with open('./trades/2025FD.zip', 'wb') as f:
@@ -70,7 +71,9 @@ def check_for_new_trades(all_trades_url, trader_name):
                 new_trades.append((dt, doc_id))
 
     # Sort trades by date, most recent first
-    new_trades.sort(reverse=True)
+    # if new_trades is not empty
+    if new_trades:
+        new_trades.sort(reverse=True)
 
     return new_trades
 
