@@ -22,7 +22,6 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         all_trades_url = os.getenv('all_trades_url', '')
         trader_name = os.getenv('trader_name', '')
         sender_email = os.getenv('sender_email', '')
-        #app_password = os.getenv('app_password', '')
         recipient_email = os.getenv('recipient_email', '')
         pdf_file_url = os.getenv('pdf_file_url', '')
 
