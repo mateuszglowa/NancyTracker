@@ -19,10 +19,10 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         logging.info('The timer is past due!')
         all_trades_url = os.getenv('all_trades_url', '')
         trader_name = os.getenv('trader_name', '')
-        sender_email = os.getenv('sender_email', '')
-        app_password = os.getenv('app_password', '')
-        recipient_email = os.getenv('recipient_email', '')
-        pdf_file_url = os.getenv('pdf_file_url', '')
+        #sender_email = os.getenv('sender_email', '')
+        #app_password = os.getenv('app_password', '')
+        #recipient_email = os.getenv('recipient_email', '')
+        #pdf_file_url = os.getenv('pdf_file_url', '')
 
         try:
             os.makedirs('./trades/2025FD')
@@ -37,7 +37,7 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         if new_trades_today:
             print('There are new trades today')
             # Send an email notification
-            send_email_notification(new_trades, trader_name, sender_email, app_password, recipient_email, pdf_file_url)
+            # send_email_notification(new_trades, trader_name, sender_email, app_password, recipient_email, pdf_file_url)
 
     remove_old_files(new_trades)
     logging.info('Trader trigger function executed.')
@@ -69,6 +69,19 @@ def check_for_new_trades(all_trades_url, trader_name):
     new_trades.sort(reverse=True)
 
     return new_trades
+
+def log_trade(trades, pdf_file_url, trader_name):
+    if not trades:
+        return
+
+    body = f"New  {trader_name} trades have been detected:\n\n"
+
+    for trade in trades:
+        body += f"Date: {trade[0].strftime('%Y-%m-%d')}\n"
+        body += f"Document ID: {trade[1]}\n"
+        body += f"PDF URL: {pdf_file_url}{trade[1]}.pdf\n\n"
+    
+    logging.info(body)
 
 
 def send_email_notification(trades, trader_name, sender_email, app_password, recipient_email, pdf_file_url):
