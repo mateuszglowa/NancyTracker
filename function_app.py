@@ -14,7 +14,6 @@ from sendgrid.helpers.mail import Mail
 
 app = func.FunctionApp()
 
-
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False,
                    use_monitor=False)
 def func_timer_trigger(myTimer: func.TimerRequest) -> None:
@@ -35,12 +34,8 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
         except FileExistsError:
             pass
 
-        logger.info(
-            'Checking for new trades before check_for_new_trades function')
-
-        new_trades = []
         try:
-            new_trades = check_for_new_trades(all_trades_url, trader_name)
+            new_trades_out = check_for_new_trades(all_trades_url, trader_name)
         except Exception as e:
             logger.error(f"Failed to check for new trades: {e}")
 
@@ -48,10 +43,10 @@ def func_timer_trigger(myTimer: func.TimerRequest) -> None:
 
         # check if new_trades conains any trades for today
         
-        # if new_trades is not empty
-        if new_trades:
+        # if new_trades is not em
+        if new_trades_out:
             new_trades_today = []
-            new_trades_today = [trade for trade in new_trades if trade[0].date() == datetime.datetime.now().date()]
+            new_trades_today = [trade for trade in new_trades_out if trade[0].date() == datetime.datetime.now().date()]
             if new_trades_today:
                 logger.info('There are new trades today')
                 # Send an email notification
@@ -77,7 +72,7 @@ def check_for_new_trades(all_trades_url, trader_name):
         with zipfile.ZipFile('./trades/2025FD.zip', 'r') as zip_ref:
             zip_ref.extractall('./trades/2025FD')
 
-    new_trades = []
+    trades = []
 
     # Read the csv fil in the zip file
     with open('./trades/2025FD/2025FD.txt', 'r') as f:
@@ -85,14 +80,14 @@ def check_for_new_trades(all_trades_url, trader_name):
             if line[1] == trader_name:
                 dt = datetime.datetime.strptime(line[-2], '%m/%d/%Y')
                 doc_id = line[8]
-                new_trades.append((dt, doc_id))
+                trades.append((dt, doc_id))
 
     # Sort trades by date, most recent first
     # if new_trades is not empty
-    if new_trades:
-        new_trades.sort(reverse=True)
+    if trades:
+        trades.sort(reverse=True)
 
-    return new_trades
+    return trades
 
 
 def send_email_notification(trades, trader_name, sender_email, recipient_email, pdf_file_url):
@@ -127,7 +122,7 @@ def send_email_notification(trades, trader_name, sender_email, recipient_email, 
         logger.error(f"Failed to send email notification: {e}")
 
 
-def remove_old_files(new_trades):
+def remove_old_files(new_trades_to_remove):
     logger.info('Removing old files')
     files_to_remove = [
         './trades/2025FD.zip',
@@ -141,8 +136,8 @@ def remove_old_files(new_trades):
         else:
             print(f"File not found: {file}")
 
-    if new_trades:
-        for trade in new_trades:
+    if new_trades_to_remove:
+        for trade in new_trades_to_remove:
             trade_file = f'./trades/2025FD/{trade[1]}.pdf'
             if os.path.exists(trade_file):
                 os.remove(trade_file)
