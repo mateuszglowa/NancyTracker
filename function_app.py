@@ -14,50 +14,60 @@ from sendgrid.helpers.mail import Mail
 
 app = func.FunctionApp()
 
+
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False,
-              use_monitor=False) 
+                   use_monitor=False)
 def func_timer_trigger(myTimer: func.TimerRequest) -> None:
     if myTimer.past_due:
-        logging.info('The timer is past due!')
         all_trades_url = os.getenv('all_trades_url', '')
         trader_name = os.getenv('trader_name', '')
         sender_email = os.getenv('sender_email', '')
         recipient_email = os.getenv('recipient_email', '')
         pdf_file_url = os.getenv('pdf_file_url', '')
 
-        logging.info("This is an INFO message.")  # Should appear in logs
-        logging.warning("This is a WARNING message.")  # Should appear in logs
-        logging.error("This is an ERROR message.")  # Should appear in logs
-        logging.debug("This is a DEBUG message.")  # Will NOT appear in logs by default
-        
+        logger = logging.getLogger("azure")
+        c_handler = logging.StreamHandler()
+        logger.addHandler(c_handler)
+        logger.setLevel(logging.DEBUG)
+
         try:
             os.makedirs('./trades/2025FD')
         except FileExistsError:
             pass
-        
-        logging.info('Checking for new trades before check_for_new_trades function')
 
-        new_trades = check_for_new_trades(all_trades_url, trader_name)
+        logger.info(
+            'Checking for new trades before check_for_new_trades function')
 
-        logging.info('New trades: %s', new_trades)
-        
+        new_trades = []
+        try:
+            new_trades = check_for_new_trades(all_trades_url, trader_name)
+        except Exception as e:
+            logger.error(f"Failed to check for new trades: {e}")
+
+        logger.info('New trades: %s', new_trades)
+
         # check if new_trades conains any trades for today
-        new_trades_today = [trade for trade in new_trades if trade[0].date() == datetime.datetime.now().date()]
-        if new_trades_today:
-            logging.info('There are new trades today')
-            # Send an email notification
-            send_email_notification(new_trades, trader_name, sender_email, recipient_email, pdf_file_url)
+        
+        # if new_trades is not empty
+        if new_trades:
+            new_trades_today = []
+            new_trades_today = [trade for trade in new_trades if trade[0].date() == datetime.datetime.now().date()]
+            if new_trades_today:
+                logger.info('There are new trades today')
+                # Send an email notification
+                send_email_notification(
+                    new_trades, trader_name, sender_email, recipient_email, pdf_file_url)
         else:
-            logging.info('There are no new trades today')
+            logger.info('There are no new trades today')
 
     remove_old_files(new_trades)
-    logging.info('Trader trigger function executed.')
+    logger.info('Trader trigger function executed.')
 
 
 def check_for_new_trades(all_trades_url, trader_name):
     # Check if ./trades/2025FD.zip file exists
     # If not, download zip file
-    logging.info('Checking for new trades')
+    logger.info('Checking for new trades')
     if not os.path.isfile('./trades/2025FD.zip'):
         r = requests.get(all_trades_url)
         with open('./trades/2025FD.zip', 'wb') as f:
@@ -84,6 +94,7 @@ def check_for_new_trades(all_trades_url, trader_name):
 
     return new_trades
 
+
 def send_email_notification(trades, trader_name, sender_email, recipient_email, pdf_file_url):
     if not trades:
         return
@@ -108,26 +119,28 @@ def send_email_notification(trades, trader_name, sender_email, recipient_email, 
     try:
         sg = SendGridAPIClient(api_key=akey)
         response = sg.client.mail.send.post(request_body=msg.get())
-        logging.info(f"Email notification sent for {len(trades)} trades {response.status_code}")
+        logger.info(
+            f"Email notification sent for {len(trades)} trades {response.status_code}")
         print(f"Email notification sent for {len(trades)} trades")
     except Exception as e:
         print(f"Failed to send email notification: {e}")
-        logging.error(f"Failed to send email notification: {e}")
+        logger.error(f"Failed to send email notification: {e}")
+
 
 def remove_old_files(new_trades):
-    logging.info('Removing old files')
+    logger.info('Removing old files')
     files_to_remove = [
         './trades/2025FD.zip',
         './trades/2025FD/2025FD.txt',
         './trades/2025FD/2025FD.xml'
     ]
-    
+
     for file in files_to_remove:
         if os.path.exists(file):
             os.remove(file)
         else:
             print(f"File not found: {file}")
-    
+
     if new_trades:
         for trade in new_trades:
             trade_file = f'./trades/2025FD/{trade[1]}.pdf'
