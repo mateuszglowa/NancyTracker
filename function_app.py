@@ -2,13 +2,9 @@ import logging
 import azure.functions as func
 import csv
 import os
-import json
 import requests
 import zipfile
 import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
