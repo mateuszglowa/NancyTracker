@@ -126,7 +126,7 @@ def check_for_new_trades(all_trades_url, trader_name):
     return trades
 
 # Timer trigger function
-@app.timer_trigger(schedule="0 0 6 * *", arg_name="myTimer", run_on_startup=False,
+@app.timer_trigger(schedule="0 0 */6 * * *", arg_name="myTimer", run_on_startup=False,
                    use_monitor=False)
 def func_timer_trigger(myTimer: func.TimerRequest) -> None:
     if myTimer.past_due:
